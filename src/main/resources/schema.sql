@@ -31,12 +31,13 @@ CREATE TABLE IF NOT EXISTS transactions (
     transaction_type VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     otp VARCHAR(6),
-    otp_expiry TIMESTAMP,
+    otp_expiry TIMESTAMP NULL,
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (from_account_id) REFERENCES accounts(account_id),
     FOREIGN KEY (to_account_id) REFERENCES accounts(account_id)
 );
+
 
 -- Create indexes for better performance
 CREATE INDEX idx_user_phone ON users(phone_number);
