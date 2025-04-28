@@ -1,0 +1,108 @@
+/* General Body Styles */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Navbar Styles */
+.navbar {
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar .navbar-brand {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.navbar .nav-link {
+    color: #0d6efd;
+}
+
+.navbar .btn-custom {
+    border-radius: 30px;
+    padding: 0.5rem 1.5rem;
+    font-size: 1rem;
+}
+
+.navbar .btn-login {
+    background-color: #0d6efd;
+    color: #fff;
+    border: none;
+}
+
+.navbar .btn-login:hover {
+    background-color: #0b5ed7;
+}
+
+.navbar .btn-register {
+    background-color: transparent;
+    color: #0d6efd;
+    border: 1px solid #0d6efd;
+}
+
+.navbar .btn-register:hover {
+    background-color: #0d6efd;
+    color: #fff;
+}
+
+/* Hero Section Styles */
+.hero-section {
+    padding: 4rem 0 2rem;
+    text-align: center;
+}
+
+.hero-section h1 {
+    font-weight: 600;
+}
+
+.hero-section p {
+    color: #6c757d;
+    margin-top: 1rem;
+}
+
+.hero-section .btn-custom {
+    border-radius: 30px;
+    padding: 0.5rem 1.5rem;
+    font-size: 1rem;
+}
+
+/* Feature Cards */
+.feature-card {
+    background-color: #fff;
+    border: none;
+    padding: 2rem;
+    text-align: center;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: 0.3s;
+}
+
+.feature-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+    font-size: 2rem;
+    color: #0d6efd;
+    margin-bottom: 1rem;
+}
+
+/* About Section Styles */
+#about {
+    padding: 5rem 0;
+    background-color: #fff;
+}
+
+#about .feature-icon {
+    font-size: 5rem;
+    color: #0d6efd;
+}
+
+/* Footer Styles */
+footer {
+    background-color: #f1f1f1;
+    font-size: 0.9rem;
+    padding: 1rem 0;
+    text-align: center;
+    color: #6c757d;
+}
