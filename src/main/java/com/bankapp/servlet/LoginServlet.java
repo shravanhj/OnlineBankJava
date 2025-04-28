@@ -1,66 +1,47 @@
 package com.bankapp.servlet;
 
-import com.bankapp.dao.Database;
-
+import com.bankapp.dao.UserDAO;
+import com.bankapp.model.User;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-
+import javax.sql.DataSource;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
-@WebServlet(
-    name = "LoginServlet",
-    urlPatterns = {"/login"}
-)
 public class LoginServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+    private UserDAO userDAO;
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    public void init() throws ServletException {
+        try {
+            Context initContext = new InitialContext();
+            Context envContext = (Context) initContext.lookup("java:comp/env");
+            DataSource dataSource = (DataSource) envContext.lookup("jdbc/bankdb");
+            userDAO = new UserDAO(dataSource);
+        } catch (NamingException e) {
+            throw new ServletException("Error initializing UserDAO", e);
+        }
+    }
 
-        request.setCharacterEncoding("UTF-8");
-
-        String phoneNumber = request.getParameter("phoneNumber");
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String username = request.getParameter("username");
         String password = request.getParameter("password");
 
-        // Log parameters for debugging
-        System.out.println("Login attempt with phoneNumber: " + phoneNumber);
-
-        try (Connection conn = Database.getConnection()) {
-            String sql = "SELECT user_id, name, phone_number FROM users WHERE phone_number = ? AND password = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, phoneNumber);
-                stmt.setString(2, password);
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        // User found, create session and redirect to dashboard
-                        HttpSession session = request.getSession();
-                        session.setAttribute("userId", rs.getInt("user_id"));
-                        session.setAttribute("userName", rs.getString("name"));
-                        session.setAttribute("phoneNumber", rs.getString("phone_number"));
-                        response.sendRedirect("dashboard.jsp");
-                    } else {
-                        // User not found, redirect with error message
-                        response.sendRedirect("login.jsp?error=Invalid+phone+number+or+password");
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            // Log SQL exception details
-            e.printStackTrace();
-            response.sendRedirect("login.jsp?error=Database+error: " + e.getMessage());
-        } catch (Exception e) {
-            // Catch any other unexpected exceptions
-            e.printStackTrace();
-            response.sendRedirect("login.jsp?error=Unexpected+error: " + e.getMessage());
+        User user = userDAO.validateUser(username, password);
+        if (user != null) {
+            HttpSession session = request.getSession();
+            session.setAttribute("user", user);
+            response.sendRedirect("dashboard.jsp");
+        } else {
+            request.setAttribute("error", "Invalid username or password");
+            request.getRequestDispatcher("login.jsp").forward(request, response);
         }
     }
 }

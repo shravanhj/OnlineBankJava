@@ -2,7 +2,6 @@ package com.bankapp.servlet;
 
 import com.bankapp.dao.Database;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,11 +16,6 @@ import com.bankapp.model.Transaction;
 import java.util.List;
 import java.util.ArrayList;
 
-@WebServlet(
-    name = "AccountServlet",
-    urlPatterns = {"/account"},
-    loadOnStartup = 1
-)
 public class AccountServlet extends HttpServlet {
     
     @Override
