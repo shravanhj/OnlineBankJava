@@ -1,7 +1,6 @@
 package com.bankapp.servlet;
 
 import com.bankapp.dao.Database;
-import com.bankapp.model.Account;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -13,172 +12,135 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 @WebServlet(
-    name = "TransferServlet",
-    urlPatterns = {"/transfer"},
+    name = "OtpVerificationServlet",
+    urlPatterns = {"/verifyOtp"},
     loadOnStartup = 1
 )
-public class TransferServlet extends HttpServlet {
+public class OtpVerificationServlet extends HttpServlet {
     
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Ensure UTF-8 encoding for the request
-        request.setCharacterEncoding("UTF-8");
-        
-        // Retrieve the userId from the session
-        HttpSession session = request.getSession();
-        String phoneNumber = (String) session.getAttribute("phoneNumber");
-
-        if (phoneNumber == null) {
-            response.sendRedirect("login.jsp?error=You must be logged in to access this page");
-            return;
-        }
-
-        try (Connection conn = Database.getConnection()) {
-            // Get user's accounts
-            List<Account> userAccounts = new ArrayList<>();
-            String userAccountsSql = "SELECT a.* FROM accounts a JOIN users u ON a.user_id = u.user_id WHERE u.phone_number = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(userAccountsSql)) {
-                stmt.setString(1, phoneNumber);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        int accountId = rs.getInt("account_id");
-                        String accountNumber = rs.getString("account_number");
-                        double balance = rs.getDouble("balance");
-                        Account account = new Account(accountId, accountNumber, balance);
-                        userAccounts.add(account);
-                    }
-                }
-            }
-
-            // Get all accounts (excluding user's own accounts)
-            List<Account> allAccounts = new ArrayList<>();
-            String allAccountsSql = "SELECT a.*, u.name as beneficiary_name FROM accounts a " +
-                                  "JOIN users u ON a.user_id = u.user_id " +
-                                  "WHERE a.user_id != (SELECT user_id FROM users WHERE phone_number = ?)";
-            try (PreparedStatement stmt = conn.prepareStatement(allAccountsSql)) {
-                stmt.setString(1, phoneNumber);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        int accountId = rs.getInt("account_id");
-                        String accountNumber = rs.getString("account_number");
-                        double balance = rs.getDouble("balance");
-                        String beneficiaryName = rs.getString("beneficiary_name");
-                        Account account = new Account(accountId, accountNumber, balance);
-                        account.setBeneficiaryName(beneficiaryName);
-                        allAccounts.add(account);
-                    }
-                }
-            }
-
-            request.setAttribute("userAccounts", userAccounts);
-            request.setAttribute("allAccounts", allAccounts);
-            request.getRequestDispatcher("transfer.jsp").forward(request, response);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            response.sendRedirect("transfer.jsp?error=Database error: " + e.getMessage());
-        }
-    }
-
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         
-        // Retrieve form data
-        int fromAccountId = Integer.parseInt(request.getParameter("fromAccount"));
-        int toAccountId = Integer.parseInt(request.getParameter("toAccount"));
-        double amount = Double.parseDouble(request.getParameter("amount"));
+        // Retrieve OTP from form
+        String enteredOtp = request.getParameter("otp");
         
         HttpSession session = request.getSession();
-        String phoneNumber = (String) session.getAttribute("phoneNumber");
+        String storedOtp = (String) session.getAttribute("otp");
+        Integer fromAccountId = (Integer) session.getAttribute("fromAccountId");
+        Integer toAccountId = (Integer) session.getAttribute("toAccountId");
+        Double amount = (Double) session.getAttribute("amount");
 
-        if (phoneNumber == null) {
-            response.sendRedirect("login.jsp?error=You must be logged in to make a transfer");
+        if (fromAccountId == null || toAccountId == null || amount == null || storedOtp == null) {
+            response.sendRedirect("transfer.jsp?error=Invalid session. Please try the transfer again.");
+            return;
+        }
+
+        if (!enteredOtp.equals(storedOtp)) {
+            request.setAttribute("error", "Invalid OTP. Please try again.");
+            request.setAttribute("otp", storedOtp);
+            request.setAttribute("fromAccount", session.getAttribute("fromAccountNumber"));
+            request.setAttribute("toAccount", session.getAttribute("toAccountNumber"));
+            request.setAttribute("beneficiaryName", session.getAttribute("beneficiaryName"));
+            request.setAttribute("amount", session.getAttribute("amount"));
+            request.getRequestDispatcher("transfer-confirm.jsp").forward(request, response);
             return;
         }
 
         try (Connection conn = Database.getConnection()) {
-            // Get account details for display
-            String fromAccountSql = "SELECT account_number FROM accounts WHERE account_id = ?";
-            String toAccountSql = "SELECT a.account_number, u.name as beneficiary_name FROM accounts a " +
-                                "JOIN users u ON a.user_id = u.user_id " +
-                                "WHERE a.account_id = ?";
-            
-            String fromAccountNumber = "";
-            String toAccountNumber = "";
-            String beneficiaryName = "";
-            
-            try (PreparedStatement stmt = conn.prepareStatement(fromAccountSql)) {
-                stmt.setInt(1, fromAccountId);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        fromAccountNumber = rs.getString("account_number");
+            conn.setAutoCommit(false); // Start transaction
+
+            try {
+                // Get user_id for both accounts
+                int fromUserId = 0;
+                int toUserId = 0;
+                
+                String getUserIdsSql = "SELECT a.user_id FROM accounts a WHERE a.account_id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(getUserIdsSql)) {
+                    stmt.setInt(1, fromAccountId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            fromUserId = rs.getInt("user_id");
+                        }
+                    }
+                    
+                    stmt.setInt(1, toAccountId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            toUserId = rs.getInt("user_id");
+                        }
                     }
                 }
-            }
-            
-            try (PreparedStatement stmt = conn.prepareStatement(toAccountSql)) {
-                stmt.setInt(1, toAccountId);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        toAccountNumber = rs.getString("account_number");
-                        beneficiaryName = rs.getString("beneficiary_name");
+
+                // Create transaction record for sender (debit)
+                String transactionSql = "INSERT INTO transactions (user_id, from_account_id, to_account_id, amount, transaction_type, status) VALUES (?, ?, ?, ?, 'DEBIT', 'COMPLETED')";
+                int transactionId;
+                try (PreparedStatement stmt = conn.prepareStatement(transactionSql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    stmt.setInt(1, fromUserId);
+                    stmt.setInt(2, fromAccountId);
+                    stmt.setInt(3, toAccountId);
+                    stmt.setDouble(4, amount);
+                    stmt.executeUpdate();
+                    
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            transactionId = generatedKeys.getInt(1);
+                        } else {
+                            throw new SQLException("Failed to create transaction");
+                        }
                     }
                 }
-            }
 
-            // Verify from account belongs to user and has sufficient balance
-            String verifySql = "SELECT a.balance FROM accounts a " +
-                             "JOIN users u ON a.user_id = u.user_id " +
-                             "WHERE a.account_id = ? AND u.phone_number = ? AND a.user_id = u.user_id";
-            try (PreparedStatement verifyStmt = conn.prepareStatement(verifySql)) {
-                verifyStmt.setInt(1, fromAccountId);
-                verifyStmt.setString(2, phoneNumber);
-                try (ResultSet rs = verifyStmt.executeQuery()) {
-                    if (!rs.next()) {
-                        throw new SQLException("Invalid account or insufficient permissions");
-                    }
-                    double currentBalance = rs.getDouble("balance");
-                    if (currentBalance < amount) {
-                        throw new SQLException("Insufficient funds");
-                    }
+                // Create transaction record for beneficiary (credit)
+                String beneficiaryTransactionSql = "INSERT INTO transactions (user_id, from_account_id, to_account_id, amount, transaction_type, status) VALUES (?, ?, ?, ?, 'CREDIT', 'COMPLETED')";
+                try (PreparedStatement stmt = conn.prepareStatement(beneficiaryTransactionSql)) {
+                    stmt.setInt(1, toUserId);
+                    stmt.setInt(2, fromAccountId);
+                    stmt.setInt(3, toAccountId);
+                    stmt.setDouble(4, amount);
+                    stmt.executeUpdate();
                 }
+
+                // Update from account balance
+                String updateFromSql = "UPDATE accounts SET balance = balance - ? WHERE account_id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(updateFromSql)) {
+                    stmt.setDouble(1, amount);
+                    stmt.setInt(2, fromAccountId);
+                    stmt.executeUpdate();
+                }
+
+                // Update to account balance
+                String updateToSql = "UPDATE accounts SET balance = balance + ? WHERE account_id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(updateToSql)) {
+                    stmt.setDouble(1, amount);
+                    stmt.setInt(2, toAccountId);
+                    stmt.executeUpdate();
+                }
+                
+                // Commit transaction
+                conn.commit();
+                
+                // Clear session attributes only after successful transaction
+                session.removeAttribute("fromAccountId");
+                session.removeAttribute("toAccountId");
+                session.removeAttribute("amount");
+                session.removeAttribute("otp");
+                
+                // Store success message
+                request.setAttribute("message", "Transfer completed successfully!");
+                request.setAttribute("transactionId", transactionId);
+                request.getRequestDispatcher("transfer-success.jsp").forward(request, response);
+
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
-
-            // Generate OTP
-            String otp = generateOTP();
-            
-            // Store transaction details in session
-            session.setAttribute("fromAccountId", fromAccountId);
-            session.setAttribute("toAccountId", toAccountId);
-            session.setAttribute("amount", amount);
-            session.setAttribute("fromAccountNumber", fromAccountNumber);
-            session.setAttribute("toAccountNumber", toAccountNumber);
-            session.setAttribute("beneficiaryName", beneficiaryName);
-            session.setAttribute("otp", otp);
-
-            // Forward to confirmation page
-            request.setAttribute("fromAccount", fromAccountNumber);
-            request.setAttribute("toAccount", toAccountNumber);
-            request.setAttribute("beneficiaryName", beneficiaryName);
-            request.setAttribute("amount", amount);
-            request.setAttribute("otp", otp); // For demo purposes only
-            request.getRequestDispatcher("transfer-confirm.jsp").forward(request, response);
-
         } catch (SQLException e) {
             e.printStackTrace();
-            response.sendRedirect("transfer.jsp?error=" + e.getMessage());
+            request.setAttribute("error", "Transfer failed: " + e.getMessage());
+            request.getRequestDispatcher("transfer-failed.jsp").forward(request, response);
         }
-    }
-
-    private String generateOTP() {
-        Random random = new Random();
-        int otp = 100000 + random.nextInt(900000);
-        return String.valueOf(otp);
     }
 } 
