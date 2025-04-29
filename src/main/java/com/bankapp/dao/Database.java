@@ -41,6 +41,16 @@ public class Database {
             throw new SQLException("Database configuration is incomplete. Please check database.properties");
         }
         
-        return DriverManager.getConnection(url, username, password);
+        try {
+            System.out.println("Attempting to connect to database with URL: " + url);
+            Connection conn = DriverManager.getConnection(url, username, password);
+            System.out.println("Database connection established successfully");
+            return conn;
+        } catch (SQLException e) {
+            System.err.println("Database connection failed: " + e.getMessage());
+            System.err.println("SQL State: " + e.getSQLState());
+            System.err.println("Error Code: " + e.getErrorCode());
+            throw e;
+        }
     }
 }

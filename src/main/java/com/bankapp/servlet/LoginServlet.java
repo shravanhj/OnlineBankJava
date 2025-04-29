@@ -37,18 +37,41 @@ public class LoginServlet extends HttpServlet {
                         session.setAttribute("userId", userId);
                         session.setAttribute("username", userName);
                         
-                        // Redirect to dashboard
-                        response.sendRedirect("dashboard.jsp");
+                        // Debug information
+                        System.out.println("Login successful for user: " + userName);
+                        System.out.println("Context path: " + request.getContextPath());
+                        System.out.println("Request URI: " + request.getRequestURI());
+                        System.out.println("Request URL: " + request.getRequestURL());
+                        
+                        // Use context-relative path for redirect (works in both Tomcat 10 and 11)
+                        String contextPath = request.getContextPath();
+                        if (contextPath == null || contextPath.isEmpty()) {
+                            contextPath = "/";
+                        }
+                        String redirectPath = contextPath + (contextPath.endsWith("/") ? "" : "/") + "dashboard.jsp";
+                        System.out.println("Redirecting to: " + redirectPath);
+                        response.sendRedirect(redirectPath);
                     } else {
                         // Authentication failed
+                        System.out.println("Login failed - invalid credentials");
                         request.setAttribute("error", "Invalid username or password");
-                        request.getRequestDispatcher("login.jsp").forward(request, response);
+                        // Use context-relative path for forward
+                        String contextPath = request.getContextPath();
+                        if (contextPath == null || contextPath.isEmpty()) {
+                            contextPath = "/";
+                        }
+                        String forwardPath = contextPath + (contextPath.endsWith("/") ? "" : "/") + "login.jsp";
+                        System.out.println("Forwarding to: " + forwardPath);
+                        request.getRequestDispatcher(forwardPath).forward(request, response);
                     }
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            request.setAttribute("error", "Database error occurred");
+            // Add more detailed error information
+            String errorMessage = "Database error occurred: " + e.getMessage();
+            System.out.println("Login Error: " + errorMessage);
+            request.setAttribute("error", errorMessage);
             request.getRequestDispatcher("login.jsp").forward(request, response);
         }
     }
