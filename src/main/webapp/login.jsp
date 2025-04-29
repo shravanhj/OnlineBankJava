@@ -108,76 +108,48 @@
     </style>
 </head>
 <body>
-
-    <!-- Login Section -->
-    <section class="login-container">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="mb-0"><i class="fas fa-university me-2"></i>Online Bank</h3>
-            </div>
-            <div class="card-body p-4">
-                <h4 class="text-center mb-4">Login to Your Account</h4>
-                <form action="${pageContext.request.contextPath}/login" method="post" class="needs-validation" novalidate>
-                    <div class="mb-3">
-                        <label for="phoneNumber" class="form-label">Phone Number</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" 
-                                   pattern="[0-9]{10}" required placeholder="Enter 10-digit phone number">
-                            <div class="invalid-feedback">
-                                Please enter a valid 10-digit phone number.
+    <div class="container">
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Login to Online Bank</h3>
+                    </div>
+                    <div class="card-body">
+                        <%-- Display error message if any --%>
+                        <% if (request.getAttribute("error") != null) { %>
+                            <div class="alert alert-danger">
+                                <%= request.getAttribute("error") %>
                             </div>
+                        <% } %>
+                        
+                        <form action="${pageContext.request.contextPath}/login" method="post">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Login</button>
+                            </div>
+                        </form>
+                        <div class="text-center mt-3">
+                            <p>Don't have an account? <a href="register.jsp">Register here</a></p>
                         </div>
                     </div>
-                    <div class="mb-4">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                            <div class="invalid-feedback">
-                                Please enter your password.
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 mb-3">
-                        <i class="fas fa-sign-in-alt me-2"></i>Login
-                    </button>
-                    <% if(request.getParameter("error") != null) { %>
-                        <div class="alert alert-danger" role="alert">
-                            <%= request.getParameter("error") %>
-                        </div>
-                    <% } %>
-                </form>
-                <div class="text-center mt-3">
-                    <p class="mb-0">Don't have an account? 
-                        <a href="register.jsp" class="text-decoration-none">Register here</a>
-                    </p>
-                    <a href="index.jsp" class="text-decoration-none mt-2 d-block">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Home
-                    </a>
                 </div>
             </div>
         </div>
-    </section>
-    <!-- Bootstrap JS Bundle -->
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        // Form validation
-        (function () {
-            'use strict'
-            var forms = document.querySelectorAll('.needs-validation')
-            Array.prototype.slice.call(forms)
-                .forEach(function (form) {
-                    form.addEventListener('submit', function (event) {
-                        if (!form.checkValidity()) {
-                            event.preventDefault()
-                            event.stopPropagation()
-                        }
-                        form.classList.add('was-validated')
-                    }, false)
-                })
-        })()
-    </script>
 </body>
 </html>
