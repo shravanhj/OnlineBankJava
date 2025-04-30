@@ -1,6 +1,6 @@
 -- Create database if not exists
 CREATE DATABASE IF NOT EXISTS onlinebank;
-USE onlinebank;
+USE onlinebank_java;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
