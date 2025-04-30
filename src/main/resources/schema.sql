@@ -1,5 +1,5 @@
 -- Create database if not exists
-CREATE DATABASE IF NOT EXISTS onlinebank;
+CREATE DATABASE IF NOT EXISTS onlinebank_java;
 USE onlinebank_java;
 
 -- Users table
